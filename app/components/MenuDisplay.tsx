@@ -5,6 +5,7 @@ import { JamixResponse } from "../types/juvenes";
 import { useEffect, useState } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useMealTypeFilter } from "../contexts/MealTypeFilterContext";
+import { useBlacklist } from "../contexts/BlacklistContext";
 import { MealTypeBadge } from "./MealTypeFilterSettings";
 
 interface MenuDisplayProps {
@@ -17,6 +18,73 @@ interface NormalizedCourse {
   category?: string;
   dietCodes: string[];
   allergens?: string;
+}
+
+// Blacklist modal for entering reason
+function BlacklistModal({
+  foodName,
+  onConfirm,
+  onCancel,
+}: {
+  foodName: string;
+  onConfirm: (reason?: string) => void;
+  onCancel: () => void;
+}) {
+  const [reason, setReason] = useState("");
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+          Blacklist Food
+        </h3>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+          Blacklisting &quot;{foodName}&quot;
+        </p>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            Reason (optional)
+          </label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g., Allergic, don't like it, etc."
+            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500"
+            rows={3}
+          />
+        </div>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(reason || undefined)}
+            className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600"
+          >
+            Blacklist
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Blacklist badge shown on blacklisted items
+function BlacklistBadge({ reason }: { reason?: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200"
+      title={reason ? `Reason: ${reason}` : "Blacklisted"}
+    >
+      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+      </svg>
+      Blacklisted
+    </span>
+  );
 }
 
 function DietBadge({ code }: { code: string }) {
@@ -66,11 +134,21 @@ function DietBadge({ code }: { code: string }) {
 function CourseCard({
   course,
   language,
+  showCategory = false,
   onHideType,
+  isBlacklisted,
+  blacklistReason,
+  onBlacklist,
+  onRestore,
 }: {
   course: SodexoCourse;
   language: "en" | "fi";
+  showCategory?: boolean;
   onHideType?: (type: string) => void;
+  isBlacklisted?: boolean;
+  blacklistReason?: string;
+  onBlacklist?: () => void;
+  onRestore?: () => void;
 }) {
   const dietCodes = course.dietcodes
     ? course.dietcodes.split(",").map((c) => c.trim())
@@ -84,9 +162,13 @@ function CourseCard({
   const mealType = course.category || course.meal_category;
 
   return (
-    <div className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 relative group">
-      {/* Meal type badge */}
-      {mealType && (
+    <div className={`p-3 rounded-lg border relative group ${
+      isBlacklisted
+        ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/30"
+        : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+    }`}>
+      {/* Meal type badge - only shown when not grouped */}
+      {showCategory && mealType && (
         <div className="flex items-center justify-between mb-2">
           <MealTypeBadge type={mealType} />
           {onHideType && (
@@ -100,15 +182,47 @@ function CourseCard({
           )}
         </div>
       )}
-      {/* Diet badges */}
-      <div className="flex flex-wrap gap-1 mb-2">
-        {dietCodes.map((code, i) => (
-          <DietBadge key={i} code={code} />
-        ))}
+      <div className="flex items-start justify-between gap-2">
+        <h4 className={`font-medium text-sm ${
+          isBlacklisted
+            ? "text-zinc-500 dark:text-zinc-500 line-through"
+            : "text-zinc-900 dark:text-zinc-100"
+        }`}>
+          {primaryTitle}
+        </h4>
+        {/* Blacklist/Restore button */}
+        {isBlacklisted ? (
+          <button
+            onClick={onRestore}
+            className="opacity-0 group-hover:opacity-100 text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-opacity shrink-0"
+            title="Restore this food"
+          >
+            Restore
+          </button>
+        ) : (
+          <button
+            onClick={onBlacklist}
+            className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-opacity shrink-0"
+            title="Blacklist this food"
+          >
+            Blacklist
+          </button>
+        )}
       </div>
-      <h4 className="font-medium text-zinc-900 dark:text-zinc-100 mb-1">
-        {primaryTitle}
-      </h4>
+      {/* Blacklist badge */}
+      {isBlacklisted && (
+        <div className="mt-2">
+          <BlacklistBadge reason={blacklistReason} />
+        </div>
+      )}
+      {/* Diet badges */}
+      {dietCodes.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {dietCodes.map((code, i) => (
+            <DietBadge key={i} code={code} />
+          ))}
+        </div>
+      )}
       {course.additionalDietInfo?.allergens && (
         <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
           Allergens: {course.additionalDietInfo.allergens}
@@ -118,17 +232,101 @@ function CourseCard({
   );
 }
 
-function NormalizedCourseCard({
-  course,
+// Group Sodexo courses by category
+function groupSodexoCoursesByCategory(courses: SodexoCourse[]): Map<string, SodexoCourse[]> {
+  const groups = new Map<string, SodexoCourse[]>();
+
+  for (const course of courses) {
+    const category = course.category || course.meal_category || "Other";
+    if (!groups.has(category)) {
+      groups.set(category, []);
+    }
+    groups.get(category)!.push(course);
+  }
+
+  return groups;
+}
+
+function SodexoCategorySection({
+  category,
+  courses,
+  language,
   onHideType,
+  isBlacklisted,
+  getBlacklistReason,
+  onBlacklist,
+  onRestore,
 }: {
-  course: NormalizedCourse;
+  category: string;
+  courses: SodexoCourse[];
+  language: "en" | "fi";
   onHideType?: (type: string) => void;
+  isBlacklisted: (name: string) => boolean;
+  getBlacklistReason: (name: string) => string | undefined;
+  onBlacklist: (name: string) => void;
+  onRestore: (name: string) => void;
 }) {
   return (
-    <div className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 relative group">
-      {/* Meal type badge */}
-      {course.category && (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-zinc-700">
+        <MealTypeBadge type={category} />
+        {onHideType && (
+          <button
+            onClick={() => onHideType(category)}
+            className="text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+            title={`Hide all "${category}" items`}
+          >
+            Hide
+          </button>
+        )}
+      </div>
+      <div className="flex flex-col gap-2">
+        {courses.map((course, index) => {
+          const title = language === "en"
+            ? course.title_en || course.title_fi
+            : course.title_fi || course.title_en;
+          return (
+            <CourseCard
+              key={index}
+              course={course}
+              language={language}
+              isBlacklisted={isBlacklisted(title)}
+              blacklistReason={getBlacklistReason(title)}
+              onBlacklist={() => onBlacklist(title)}
+              onRestore={() => onRestore(title)}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function NormalizedCourseCard({
+  course,
+  showCategory = false,
+  onHideType,
+  isBlacklisted,
+  blacklistReason,
+  onBlacklist,
+  onRestore,
+}: {
+  course: NormalizedCourse;
+  showCategory?: boolean;
+  onHideType?: (type: string) => void;
+  isBlacklisted?: boolean;
+  blacklistReason?: string;
+  onBlacklist?: () => void;
+  onRestore?: () => void;
+}) {
+  return (
+    <div className={`p-3 rounded-lg border relative group ${
+      isBlacklisted
+        ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/30"
+        : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+    }`}>
+      {/* Meal type badge - only shown when not grouped */}
+      {showCategory && course.category && (
         <div className="flex items-center justify-between mb-2">
           <MealTypeBadge type={course.category} />
           {onHideType && (
@@ -142,20 +340,114 @@ function NormalizedCourseCard({
           )}
         </div>
       )}
-      {/* Diet badges */}
-      <div className="flex flex-wrap gap-1 mb-2">
-        {course.dietCodes.map((code, i) => (
-          <DietBadge key={i} code={code} />
-        ))}
+      <div className="flex items-start justify-between gap-2">
+        <h4 className={`font-medium text-sm ${
+          isBlacklisted
+            ? "text-zinc-500 dark:text-zinc-500 line-through"
+            : "text-zinc-900 dark:text-zinc-100"
+        }`}>
+          {course.name}
+        </h4>
+        {/* Blacklist/Restore button */}
+        {isBlacklisted ? (
+          <button
+            onClick={onRestore}
+            className="opacity-0 group-hover:opacity-100 text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-opacity shrink-0"
+            title="Restore this food"
+          >
+            Restore
+          </button>
+        ) : (
+          <button
+            onClick={onBlacklist}
+            className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-opacity shrink-0"
+            title="Blacklist this food"
+          >
+            Blacklist
+          </button>
+        )}
       </div>
-      <h4 className="font-medium text-zinc-900 dark:text-zinc-100 mb-1">
-        {course.name}
-      </h4>
+      {/* Blacklist badge */}
+      {isBlacklisted && (
+        <div className="mt-2">
+          <BlacklistBadge reason={blacklistReason} />
+        </div>
+      )}
+      {/* Diet badges */}
+      {course.dietCodes.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {course.dietCodes.map((code, i) => (
+            <DietBadge key={i} code={code} />
+          ))}
+        </div>
+      )}
       {course.allergens && (
         <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
           Allergens: {course.allergens}
         </p>
       )}
+    </div>
+  );
+}
+
+// Group courses by category
+function groupCoursesByCategory(courses: NormalizedCourse[]): Map<string, NormalizedCourse[]> {
+  const groups = new Map<string, NormalizedCourse[]>();
+
+  for (const course of courses) {
+    const category = course.category || "Other";
+    if (!groups.has(category)) {
+      groups.set(category, []);
+    }
+    groups.get(category)!.push(course);
+  }
+
+  return groups;
+}
+
+function CategorySection({
+  category,
+  courses,
+  onHideType,
+  isBlacklisted,
+  getBlacklistReason,
+  onBlacklist,
+  onRestore,
+}: {
+  category: string;
+  courses: NormalizedCourse[];
+  onHideType?: (type: string) => void;
+  isBlacklisted: (name: string) => boolean;
+  getBlacklistReason: (name: string) => string | undefined;
+  onBlacklist: (name: string) => void;
+  onRestore: (name: string) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-zinc-700">
+        <MealTypeBadge type={category} />
+        {onHideType && (
+          <button
+            onClick={() => onHideType(category)}
+            className="text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+            title={`Hide all "${category}" items`}
+          >
+            Hide
+          </button>
+        )}
+      </div>
+      <div className="flex flex-col gap-2">
+        {courses.map((course, index) => (
+          <NormalizedCourseCard
+            key={index}
+            course={course}
+            isBlacklisted={isBlacklisted(course.name)}
+            blacklistReason={getBlacklistReason(course.name)}
+            onBlacklist={() => onBlacklist(course.name)}
+            onRestore={() => onRestore(course.name)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -225,6 +517,9 @@ function parseJamixTodayMenu(data: JamixResponse): { courses: NormalizedCourse[]
         if (!mealoption.menuItems) continue;
 
         for (const item of mealoption.menuItems) {
+          // Skip items without a name
+          if (!item.name) continue;
+
           // Parse diet codes from string like "G, M, Mu, *, SIS.LUOMUA"
           const dietCodes: string[] = [];
           if (item.diets) {
@@ -252,7 +547,7 @@ function parseJamixTodayMenu(data: JamixResponse): { courses: NormalizedCourse[]
           }
 
           courses.push({
-            name: item.name || "Unknown dish",
+            name: item.name,
             category: mealoption.name, // e.g., "LUNCH", "VEGETARIAN LUNCH"
             dietCodes,
             allergens: allergens || undefined,
@@ -268,11 +563,32 @@ function parseJamixTodayMenu(data: JamixResponse): { courses: NormalizedCourse[]
 export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
   const { language } = useLanguage();
   const { isTypeHidden, hideType, addKnownType, hiddenTypes } = useMealTypeFilter();
+  const { isBlacklisted, getBlacklistReason, blacklistItem, restoreItem } = useBlacklist();
   const [menu, setMenu] = useState<SodexoWeeklyMenu | null>(null);
   const [juvenesMenu, setJuvenesMenu] = useState<{ courses: NormalizedCourse[]; displayDate: string; isToday: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [todayIndex, setTodayIndex] = useState(0);
+  const [blacklistModalFood, setBlacklistModalFood] = useState<string | null>(null);
+
+  const handleBlacklist = (name: string) => {
+    setBlacklistModalFood(name);
+  };
+
+  const handleConfirmBlacklist = (reason?: string) => {
+    if (blacklistModalFood) {
+      blacklistItem(blacklistModalFood, reason);
+      setBlacklistModalFood(null);
+    }
+  };
+
+  const handleCancelBlacklist = () => {
+    setBlacklistModalFood(null);
+  };
+
+  const handleRestore = (name: string) => {
+    restoreItem(name);
+  };
 
   useEffect(() => {
     async function fetchMenu() {
@@ -369,10 +685,34 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
 
     return (
       <div className="w-full">
+        {/* Blacklist Modal */}
+        {blacklistModalFood && (
+          <BlacklistModal
+            foodName={blacklistModalFood}
+            onConfirm={handleConfirmBlacklist}
+            onCancel={handleCancelBlacklist}
+          />
+        )}
+
         <div className="mb-6">
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
-            {restaurant.name}
-          </h2>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+              {restaurant.name}
+            </h2>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address} ${restaurant.city}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+              title="Open in Google Maps"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Map
+            </a>
+          </div>
           {juvenesMenu.displayDate && (
             <p className="text-sm text-zinc-900 dark:text-zinc-100 font-medium">
               {juvenesMenu.isToday ? "Today" : juvenesMenu.displayDate}
@@ -395,9 +735,18 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
         )}
 
         {filteredCourses.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {filteredCourses.map((course, index) => (
-              <NormalizedCourseCard key={index} course={course} onHideType={hideType} />
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from(groupCoursesByCategory(filteredCourses)).map(([category, courses]) => (
+              <CategorySection
+                key={category}
+                category={category}
+                courses={courses}
+                onHideType={hideType}
+                isBlacklisted={isBlacklisted}
+                getBlacklistReason={getBlacklistReason}
+                onBlacklist={handleBlacklist}
+                onRestore={handleRestore}
+              />
             ))}
           </div>
         ) : (
@@ -451,10 +800,33 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
 
   return (
     <div className="w-full">
+      {/* Blacklist Modal */}
+      {blacklistModalFood && (
+        <BlacklistModal
+          foodName={blacklistModalFood}
+          onConfirm={handleConfirmBlacklist}
+          onCancel={handleCancelBlacklist}
+        />
+      )}
+
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
-          {restaurant.name}
-        </h2>
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+            {restaurant.name}
+          </h2>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address} ${restaurant.city}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            title="Open in Google Maps"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </a>
+        </div>
         <p className="text-sm text-zinc-900 dark:text-zinc-100 font-medium">
           {isShowingToday ? "Today" : todayMenu?.date || ""}
           {isShowingToday && (
@@ -473,9 +845,19 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
 
       {/* Menu items */}
       {courses.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {courses.map((course, index) => (
-            <CourseCard key={index} course={course} language={language} onHideType={hideType} />
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from(groupSodexoCoursesByCategory(courses)).map(([category, categoryCourses]) => (
+            <SodexoCategorySection
+              key={category}
+              category={category}
+              courses={categoryCourses}
+              language={language}
+              onHideType={hideType}
+              isBlacklisted={isBlacklisted}
+              getBlacklistReason={getBlacklistReason}
+              onBlacklist={handleBlacklist}
+              onRestore={handleRestore}
+            />
           ))}
         </div>
       ) : (

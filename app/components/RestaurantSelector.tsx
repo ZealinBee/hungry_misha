@@ -2,7 +2,7 @@
 
 import { Restaurant } from "../types/sodexo";
 import { restaurants, citiesWithRestaurants } from "../data/restaurants";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface RestaurantSelectorProps {
   selectedRestaurant: Restaurant | null;
@@ -17,10 +17,23 @@ export default function RestaurantSelector({
   const [hiddenRestaurants, setHiddenRestaurants] = useState<string[]>([]);
   const [showHidden, setShowHidden] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
+  const cityDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target as Node)) {
+        setCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Load from localStorage on mount
   useEffect(() => {
-    const savedCity = localStorage.getItem("defaultCity") || "";
+    const savedCity = localStorage.getItem("defaultCity") || "Tampere";
     const savedHidden = JSON.parse(localStorage.getItem("hiddenRestaurants") || "[]");
     setSelectedCity(savedCity);
     setHiddenRestaurants(savedHidden);
@@ -95,26 +108,118 @@ export default function RestaurantSelector({
 
   return (
     <div className="w-full max-w-md space-y-4">
-      <div>
-        <label
-          htmlFor="city-select"
-          className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
-        >
+      <div ref={cityDropdownRef} className="relative">
+        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
           Filter by city
         </label>
-        <select
-          id="city-select"
-          value={selectedCity}
-          onChange={(e) => setSelectedCity(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        <button
+          type="button"
+          onClick={() => setCityDropdownOpen(!cityDropdownOpen)}
+          className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-left shadow-sm hover:border-zinc-300 dark:hover:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
         >
-          <option value="">All cities</option>
-          {citiesWithRestaurants.map((city) => (
-            <option key={city} value={city}>
-              {city}
-            </option>
-          ))}
-        </select>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </div>
+              <span className="text-zinc-900 dark:text-zinc-100 font-medium">
+                {selectedCity || "All cities"}
+              </span>
+            </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`h-5 w-5 text-zinc-400 transition-transform duration-200 ${cityDropdownOpen ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </button>
+
+        {cityDropdownOpen && (
+          <div className="absolute z-10 mt-2 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg overflow-hidden">
+            <div className="max-h-64 overflow-y-auto py-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCity("");
+                  setCityDropdownOpen(false);
+                }}
+                className={`w-full px-4 py-2.5 text-left flex items-center gap-3 transition-colors ${
+                  selectedCity === ""
+                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                    : "hover:bg-zinc-50 dark:hover:bg-zinc-700/50 text-zinc-700 dark:text-zinc-300"
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                  selectedCity === "" ? "bg-blue-100 dark:bg-blue-800" : "bg-zinc-100 dark:bg-zinc-700"
+                }`}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-3.5 w-3.5 ${selectedCity === "" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500"}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <span className="font-medium">All cities</span>
+              </button>
+              {citiesWithRestaurants.map((city) => (
+                <button
+                  key={city}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCity(city);
+                    setCityDropdownOpen(false);
+                  }}
+                  className={`w-full px-4 py-2.5 text-left flex items-center gap-3 transition-colors ${
+                    selectedCity === city
+                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                      : "hover:bg-zinc-50 dark:hover:bg-zinc-700/50 text-zinc-700 dark:text-zinc-300"
+                  }`}
+                >
+                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                    selectedCity === city ? "bg-blue-100 dark:bg-blue-800" : "bg-zinc-100 dark:bg-zinc-700"
+                  }`}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`h-3.5 w-3.5 ${selectedCity === city ? "text-blue-600 dark:text-blue-400" : "text-zinc-500"}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <span className="font-medium">{city}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div>
