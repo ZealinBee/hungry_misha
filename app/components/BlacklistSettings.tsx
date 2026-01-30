@@ -21,7 +21,7 @@ export default function BlacklistSettings() {
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
         </svg>
-        Blacklist
+        <span className="hidden sm:inline">Blacklist</span>
         {blacklistedCount > 0 && (
           <span className="px-1.5 py-0.5 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-full">
             {blacklistedCount}
@@ -35,24 +35,35 @@ export default function BlacklistSettings() {
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-full mt-2 z-50 w-80 max-h-96 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg">
+          <div className="fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 z-50 sm:w-80 max-h-96 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg">
             <div className="p-4 border-b border-zinc-200 dark:border-zinc-700">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  Blacklisted Foods
-                </h3>
-                {blacklistedCount > 0 && (
-                  <button
-                    onClick={restoreAllItems}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    Restore all
-                  </button>
-                )}
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    Blacklisted Foods
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                    Foods you&apos;ve hidden (per restaurant)
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1 -m-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                  aria-label="Close"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                Foods you&apos;ve hidden from all menus
-              </p>
+              {blacklistedCount > 0 && (
+                <button
+                  onClick={restoreAllItems}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
+                >
+                  Restore all
+                </button>
+              )}
             </div>
 
             <div className="p-2">
@@ -66,9 +77,9 @@ export default function BlacklistSettings() {
                 <div className="space-y-1">
                   {items.map((item) => (
                     <BlacklistItem
-                      key={item.name.toLowerCase()}
+                      key={`${item.restaurantId}:${item.name.toLowerCase()}`}
                       item={item}
-                      onRestore={() => restoreItem(item.name)}
+                      onRestore={() => restoreItem(item.name, item.restaurantId)}
                     />
                   ))}
                 </div>
@@ -95,6 +106,9 @@ function BlacklistItem({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
           {item.name}
+        </p>
+        <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 truncate" title={item.restaurantName}>
+          @ {item.restaurantName}
         </p>
         {item.reason && (
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate" title={item.reason}>

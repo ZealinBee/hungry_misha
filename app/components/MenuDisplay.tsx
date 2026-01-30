@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useMealTypeFilter } from "../contexts/MealTypeFilterContext";
 import { useBlacklist } from "../contexts/BlacklistContext";
+import { useFavorites, NotificationSettings } from "../contexts/FavoritesContext";
 import { MealTypeBadge } from "./MealTypeFilterSettings";
+import FavoriteModal from "./FavoriteModal";
 
 interface MenuDisplayProps {
   restaurant: Restaurant;
@@ -23,10 +25,12 @@ interface NormalizedCourse {
 // Blacklist modal for entering reason
 function BlacklistModal({
   foodName,
+  restaurantName,
   onConfirm,
   onCancel,
 }: {
   foodName: string;
+  restaurantName: string;
   onConfirm: (reason?: string) => void;
   onCancel: () => void;
 }) {
@@ -39,7 +43,7 @@ function BlacklistModal({
           Blacklist Food
         </h3>
         <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-          Blacklisting &quot;{foodName}&quot;
+          Blacklisting &quot;{foodName}&quot; from <span className="font-medium text-zinc-700 dark:text-zinc-300">{restaurantName}</span>
         </p>
         <div className="mb-4">
           <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -140,6 +144,9 @@ function CourseCard({
   blacklistReason,
   onBlacklist,
   onRestore,
+  isFavorite,
+  onFavorite,
+  onUnfavorite,
 }: {
   course: SodexoCourse;
   language: "en" | "fi";
@@ -149,6 +156,9 @@ function CourseCard({
   blacklistReason?: string;
   onBlacklist?: () => void;
   onRestore?: () => void;
+  isFavorite?: boolean;
+  onFavorite?: () => void;
+  onUnfavorite?: () => void;
 }) {
   const dietCodes = course.dietcodes
     ? course.dietcodes.split(",").map((c) => c.trim())
@@ -165,7 +175,9 @@ function CourseCard({
     <div className={`p-3 rounded-lg border relative group ${
       isBlacklisted
         ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/30"
-        : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+        : course.additionalDietInfo?.allergens
+          ? "border-2 border-emerald-500 dark:border-emerald-400 bg-white dark:bg-zinc-800"
+          : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
     }`}>
       {/* Meal type badge - only shown when not grouped */}
       {showCategory && mealType && (
@@ -183,13 +195,29 @@ function CourseCard({
         </div>
       )}
       <div className="flex items-start justify-between gap-2">
-        <h4 className={`font-medium text-sm ${
-          isBlacklisted
-            ? "text-zinc-500 dark:text-zinc-500 line-through"
-            : "text-zinc-900 dark:text-zinc-100"
-        }`}>
-          {primaryTitle}
-        </h4>
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Favorite button */}
+          <button
+            onClick={isFavorite ? onUnfavorite : onFavorite}
+            className={`shrink-0 transition-colors ${
+              isFavorite
+                ? "text-pink-500 hover:text-pink-600"
+                : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-pink-500"
+            }`}
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            <svg className="w-4 h-4" fill={isFavorite ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </button>
+          <h4 className={`font-medium text-sm ${
+            isBlacklisted
+              ? "text-zinc-500 dark:text-zinc-500 line-through"
+              : "text-zinc-900 dark:text-zinc-100"
+          }`}>
+            {primaryTitle}
+          </h4>
+        </div>
         {/* Blacklist/Restore button */}
         {isBlacklisted ? (
           <button
@@ -256,6 +284,9 @@ function SodexoCategorySection({
   getBlacklistReason,
   onBlacklist,
   onRestore,
+  isFavorite,
+  onFavorite,
+  onUnfavorite,
 }: {
   category: string;
   courses: SodexoCourse[];
@@ -265,6 +296,9 @@ function SodexoCategorySection({
   getBlacklistReason: (name: string) => string | undefined;
   onBlacklist: (name: string) => void;
   onRestore: (name: string) => void;
+  isFavorite: (name: string) => boolean;
+  onFavorite: (name: string, category: string) => void;
+  onUnfavorite: (name: string) => void;
 }) {
   return (
     <div className="flex flex-col">
@@ -294,6 +328,9 @@ function SodexoCategorySection({
               blacklistReason={getBlacklistReason(title)}
               onBlacklist={() => onBlacklist(title)}
               onRestore={() => onRestore(title)}
+              isFavorite={isFavorite(title)}
+              onFavorite={() => onFavorite(title, category)}
+              onUnfavorite={() => onUnfavorite(title)}
             />
           );
         })}
@@ -310,6 +347,9 @@ function NormalizedCourseCard({
   blacklistReason,
   onBlacklist,
   onRestore,
+  isFavorite,
+  onFavorite,
+  onUnfavorite,
 }: {
   course: NormalizedCourse;
   showCategory?: boolean;
@@ -318,12 +358,17 @@ function NormalizedCourseCard({
   blacklistReason?: string;
   onBlacklist?: () => void;
   onRestore?: () => void;
+  isFavorite?: boolean;
+  onFavorite?: () => void;
+  onUnfavorite?: () => void;
 }) {
   return (
     <div className={`p-3 rounded-lg border relative group ${
       isBlacklisted
         ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/30"
-        : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+        : course.allergens
+          ? "border-2 border-emerald-500 dark:border-emerald-400 bg-white dark:bg-zinc-800"
+          : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
     }`}>
       {/* Meal type badge - only shown when not grouped */}
       {showCategory && course.category && (
@@ -341,13 +386,29 @@ function NormalizedCourseCard({
         </div>
       )}
       <div className="flex items-start justify-between gap-2">
-        <h4 className={`font-medium text-sm ${
-          isBlacklisted
-            ? "text-zinc-500 dark:text-zinc-500 line-through"
-            : "text-zinc-900 dark:text-zinc-100"
-        }`}>
-          {course.name}
-        </h4>
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Favorite button */}
+          <button
+            onClick={isFavorite ? onUnfavorite : onFavorite}
+            className={`shrink-0 transition-colors ${
+              isFavorite
+                ? "text-pink-500 hover:text-pink-600"
+                : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-pink-500"
+            }`}
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            <svg className="w-4 h-4" fill={isFavorite ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </button>
+          <h4 className={`font-medium text-sm ${
+            isBlacklisted
+              ? "text-zinc-500 dark:text-zinc-500 line-through"
+              : "text-zinc-900 dark:text-zinc-100"
+          }`}>
+            {course.name}
+          </h4>
+        </div>
         {/* Blacklist/Restore button */}
         {isBlacklisted ? (
           <button
@@ -413,6 +474,9 @@ function CategorySection({
   getBlacklistReason,
   onBlacklist,
   onRestore,
+  isFavorite,
+  onFavorite,
+  onUnfavorite,
 }: {
   category: string;
   courses: NormalizedCourse[];
@@ -421,6 +485,9 @@ function CategorySection({
   getBlacklistReason: (name: string) => string | undefined;
   onBlacklist: (name: string) => void;
   onRestore: (name: string) => void;
+  isFavorite: (name: string) => boolean;
+  onFavorite: (name: string, category: string) => void;
+  onUnfavorite: (name: string) => void;
 }) {
   return (
     <div className="flex flex-col">
@@ -445,6 +512,9 @@ function CategorySection({
             blacklistReason={getBlacklistReason(course.name)}
             onBlacklist={() => onBlacklist(course.name)}
             onRestore={() => onRestore(course.name)}
+            isFavorite={isFavorite(course.name)}
+            onFavorite={() => onFavorite(course.name, category)}
+            onUnfavorite={() => onUnfavorite(course.name)}
           />
         ))}
       </div>
@@ -564,12 +634,19 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
   const { language } = useLanguage();
   const { isTypeHidden, hideType, addKnownType, hiddenTypes } = useMealTypeFilter();
   const { isBlacklisted, getBlacklistReason, blacklistItem, restoreItem } = useBlacklist();
+  const { isFavorite, addFavorite, removeFavorite, requestNotificationPermission, notificationPermission } = useFavorites();
   const [menu, setMenu] = useState<SodexoWeeklyMenu | null>(null);
   const [juvenesMenu, setJuvenesMenu] = useState<{ courses: NormalizedCourse[]; displayDate: string; isToday: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [todayIndex, setTodayIndex] = useState(0);
   const [blacklistModalFood, setBlacklistModalFood] = useState<string | null>(null);
+  const [favoriteModalFood, setFavoriteModalFood] = useState<{ name: string; category: string } | null>(null);
+
+  // Get restaurant ID - use unique identifier based on provider
+  const restaurantId = restaurant.provider === "juvenes"
+    ? `juvenes-${restaurant.customerId}-${restaurant.kitchenId}`
+    : `sodexo-${restaurant.id}`;
 
   const handleBlacklist = (name: string) => {
     setBlacklistModalFood(name);
@@ -577,7 +654,7 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
 
   const handleConfirmBlacklist = (reason?: string) => {
     if (blacklistModalFood) {
-      blacklistItem(blacklistModalFood, reason);
+      blacklistItem(blacklistModalFood, restaurantId, restaurant.name, reason);
       setBlacklistModalFood(null);
     }
   };
@@ -587,8 +664,39 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
   };
 
   const handleRestore = (name: string) => {
-    restoreItem(name);
+    restoreItem(name, restaurantId);
   };
+
+  // Favorite handlers
+  const handleFavorite = (name: string, category: string) => {
+    setFavoriteModalFood({ name, category });
+  };
+
+  const handleConfirmFavorite = (notification: NotificationSettings) => {
+    if (favoriteModalFood) {
+      addFavorite(
+        favoriteModalFood.name,
+        restaurantId,
+        restaurant.name,
+        favoriteModalFood.category,
+        notification
+      );
+      setFavoriteModalFood(null);
+    }
+  };
+
+  const handleCancelFavorite = () => {
+    setFavoriteModalFood(null);
+  };
+
+  const handleUnfavorite = (name: string) => {
+    removeFavorite(name, restaurantId);
+  };
+
+  // Wrapper functions to include restaurant ID
+  const checkIsBlacklisted = (name: string) => isBlacklisted(name, restaurantId);
+  const getBlacklistReasonForRestaurant = (name: string) => getBlacklistReason(name, restaurantId);
+  const checkIsFavorite = (name: string) => isFavorite(name, restaurantId);
 
   useEffect(() => {
     async function fetchMenu() {
@@ -689,8 +797,22 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
         {blacklistModalFood && (
           <BlacklistModal
             foodName={blacklistModalFood}
+            restaurantName={restaurant.name}
             onConfirm={handleConfirmBlacklist}
             onCancel={handleCancelBlacklist}
+          />
+        )}
+
+        {/* Favorite Modal */}
+        {favoriteModalFood && (
+          <FavoriteModal
+            foodName={favoriteModalFood.name}
+            restaurantName={restaurant.name}
+            category={favoriteModalFood.category}
+            onConfirm={handleConfirmFavorite}
+            onCancel={handleCancelFavorite}
+            requestNotificationPermission={requestNotificationPermission}
+            notificationPermission={notificationPermission}
           />
         )}
 
@@ -742,10 +864,13 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
                 category={category}
                 courses={courses}
                 onHideType={hideType}
-                isBlacklisted={isBlacklisted}
-                getBlacklistReason={getBlacklistReason}
+                isBlacklisted={checkIsBlacklisted}
+                getBlacklistReason={getBlacklistReasonForRestaurant}
                 onBlacklist={handleBlacklist}
                 onRestore={handleRestore}
+                isFavorite={checkIsFavorite}
+                onFavorite={handleFavorite}
+                onUnfavorite={handleUnfavorite}
               />
             ))}
           </div>
@@ -804,8 +929,22 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
       {blacklistModalFood && (
         <BlacklistModal
           foodName={blacklistModalFood}
+          restaurantName={restaurant.name}
           onConfirm={handleConfirmBlacklist}
           onCancel={handleCancelBlacklist}
+        />
+      )}
+
+      {/* Favorite Modal */}
+      {favoriteModalFood && (
+        <FavoriteModal
+          foodName={favoriteModalFood.name}
+          restaurantName={restaurant.name}
+          category={favoriteModalFood.category}
+          onConfirm={handleConfirmFavorite}
+          onCancel={handleCancelFavorite}
+          requestNotificationPermission={requestNotificationPermission}
+          notificationPermission={notificationPermission}
         />
       )}
 
@@ -818,13 +957,14 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address} ${restaurant.city}`)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
             title="Open in Google Maps"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
+            Map
           </a>
         </div>
         <p className="text-sm text-zinc-900 dark:text-zinc-100 font-medium">
@@ -853,10 +993,13 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
               courses={categoryCourses}
               language={language}
               onHideType={hideType}
-              isBlacklisted={isBlacklisted}
-              getBlacklistReason={getBlacklistReason}
+              isBlacklisted={checkIsBlacklisted}
+              getBlacklistReason={getBlacklistReasonForRestaurant}
               onBlacklist={handleBlacklist}
               onRestore={handleRestore}
+              isFavorite={checkIsFavorite}
+              onFavorite={handleFavorite}
+              onUnfavorite={handleUnfavorite}
             />
           ))}
         </div>

@@ -62,7 +62,7 @@ export default function MealTypeFilterSettings() {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
         </svg>
-        Filter
+        <span className="hidden sm:inline">Filter</span>
         {hiddenTypes.size > 0 && (
           <span className="px-1.5 py-0.5 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-full">
             {hiddenTypes.size}
@@ -76,24 +76,35 @@ export default function MealTypeFilterSettings() {
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-full mt-2 z-50 w-80 max-h-96 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg">
+          <div className="fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 z-50 sm:w-80 max-h-96 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg">
             <div className="p-4 border-b border-zinc-200 dark:border-zinc-700">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  Filter Meal Types
-                </h3>
-                {hiddenTypes.size > 0 && (
-                  <button
-                    onClick={showAllTypes}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    Show all
-                  </button>
-                )}
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    Filter Meal Types
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                    Unchecked types will be hidden from the menu
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1 -m-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                  aria-label="Close"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                Unchecked types will be hidden from the menu
-              </p>
+              {hiddenTypes.size > 0 && (
+                <button
+                  onClick={showAllTypes}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
+                >
+                  Show all
+                </button>
+              )}
             </div>
 
             <div className="p-2">

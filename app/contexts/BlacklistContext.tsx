@@ -4,17 +4,19 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 
 export interface BlacklistedItem {
   name: string;
+  restaurantId: string;
+  restaurantName: string;
   reason?: string;
   blacklistedAt: number;
 }
 
 interface BlacklistContextValue {
   blacklistedItems: Map<string, BlacklistedItem>;
-  blacklistItem: (name: string, reason?: string) => void;
-  restoreItem: (name: string) => void;
+  blacklistItem: (name: string, restaurantId: string, restaurantName: string, reason?: string) => void;
+  restoreItem: (name: string, restaurantId: string) => void;
   restoreAllItems: () => void;
-  isBlacklisted: (name: string) => boolean;
-  getBlacklistReason: (name: string) => string | undefined;
+  isBlacklisted: (name: string, restaurantId: string) => boolean;
+  getBlacklistReason: (name: string, restaurantId: string) => string | undefined;
   blacklistedCount: number;
 }
 
@@ -51,12 +53,19 @@ export function BlacklistProvider({ children }: { children: ReactNode }) {
     }
   }, [blacklistedItems, isLoaded]);
 
-  const blacklistItem = (name: string, reason?: string) => {
-    const normalizedName = name.toLowerCase().trim();
+  // Create a composite key from restaurant ID and food name
+  const createKey = (name: string, restaurantId: string) => {
+    return `${restaurantId}:${name.toLowerCase().trim()}`;
+  };
+
+  const blacklistItem = (name: string, restaurantId: string, restaurantName: string, reason?: string) => {
+    const key = createKey(name, restaurantId);
     setBlacklistedItems((prev) => {
       const next = new Map(prev);
-      next.set(normalizedName, {
+      next.set(key, {
         name,
+        restaurantId,
+        restaurantName,
         reason,
         blacklistedAt: Date.now(),
       });
@@ -64,11 +73,11 @@ export function BlacklistProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const restoreItem = (name: string) => {
-    const normalizedName = name.toLowerCase().trim();
+  const restoreItem = (name: string, restaurantId: string) => {
+    const key = createKey(name, restaurantId);
     setBlacklistedItems((prev) => {
       const next = new Map(prev);
-      next.delete(normalizedName);
+      next.delete(key);
       return next;
     });
   };
@@ -77,14 +86,14 @@ export function BlacklistProvider({ children }: { children: ReactNode }) {
     setBlacklistedItems(new Map());
   };
 
-  const isBlacklisted = (name: string) => {
-    const normalizedName = name.toLowerCase().trim();
-    return blacklistedItems.has(normalizedName);
+  const isBlacklisted = (name: string, restaurantId: string) => {
+    const key = createKey(name, restaurantId);
+    return blacklistedItems.has(key);
   };
 
-  const getBlacklistReason = (name: string) => {
-    const normalizedName = name.toLowerCase().trim();
-    return blacklistedItems.get(normalizedName)?.reason;
+  const getBlacklistReason = (name: string, restaurantId: string) => {
+    const key = createKey(name, restaurantId);
+    return blacklistedItems.get(key)?.reason;
   };
 
   return (
