@@ -36,11 +36,11 @@ export function MealTypeBadge({ type, size = "sm" }: { type: string; size?: "sm"
   const label = getMealTypeLabel(type);
 
   const sizeClasses = size === "sm"
-    ? "px-2 py-0.5 text-xs"
-    : "px-3 py-1 text-sm";
+    ? "px-2.5 py-1 text-xs"
+    : "px-3 py-1.5 text-sm";
 
   return (
-    <span className={`inline-flex items-center font-medium rounded-full border ${style.bg} ${style.text} ${style.border} ${sizeClasses}`}>
+    <span className={`inline-flex items-center font-medium rounded-md ${style.bg} ${style.text} ${sizeClasses}`}>
       {label}
     </span>
   );

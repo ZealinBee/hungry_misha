@@ -186,6 +186,21 @@ export const restaurants: Restaurant[] = [
     customerId: 93077,
     kitchenId: 58,
   },
+
+  // ============ CAMPUSRAVITA RESTAURANTS ============
+  // Uses JAMIX API: https://fi.jamix.cloud/apps/menuservice/rest/haku/menu/{customerId}/{kitchenId}
+  // Campusravita customer ID: 97603
+
+  // Tampere - Campusravita (TAMK)
+  {
+    id: "campusravita-tamk",
+    name: "Campusravita (TAMK)",
+    city: "Tampere",
+    address: "Kuntokatu 3, 33520 Tampere",
+    provider: "campusravita",
+    customerId: 97603,
+    kitchenId: 1,
+  },
 ];
 
 export const citiesWithRestaurants = [

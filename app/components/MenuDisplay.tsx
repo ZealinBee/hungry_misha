@@ -175,9 +175,7 @@ function CourseCard({
     <div className={`p-3 rounded-lg border relative group ${
       isBlacklisted
         ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/30"
-        : course.additionalDietInfo?.allergens
-          ? "border-2 border-emerald-500 dark:border-emerald-400 bg-white dark:bg-zinc-800"
-          : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+        : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
     }`}>
       {/* Meal type badge - only shown when not grouped */}
       {showCategory && mealType && (
@@ -186,7 +184,7 @@ function CourseCard({
           {onHideType && (
             <button
               onClick={() => onHideType(mealType)}
-              className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-opacity"
+              className="text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
               title={`Hide all "${mealType}" items`}
             >
               Hide type
@@ -194,49 +192,14 @@ function CourseCard({
           )}
         </div>
       )}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          {/* Favorite button */}
-          <button
-            onClick={isFavorite ? onUnfavorite : onFavorite}
-            className={`shrink-0 transition-colors ${
-              isFavorite
-                ? "text-pink-500 hover:text-pink-600"
-                : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-pink-500"
-            }`}
-            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <svg className="w-4 h-4" fill={isFavorite ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </button>
-          <h4 className={`font-medium text-sm ${
-            isBlacklisted
-              ? "text-zinc-500 dark:text-zinc-500 line-through"
-              : "text-zinc-900 dark:text-zinc-100"
-          }`}>
-            {primaryTitle}
-          </h4>
-        </div>
-        {/* Blacklist/Restore button */}
-        {isBlacklisted ? (
-          <button
-            onClick={onRestore}
-            className="opacity-0 group-hover:opacity-100 text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-opacity shrink-0"
-            title="Restore this food"
-          >
-            Restore
-          </button>
-        ) : (
-          <button
-            onClick={onBlacklist}
-            className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-opacity shrink-0"
-            title="Blacklist this food"
-          >
-            Blacklist
-          </button>
-        )}
-      </div>
+      {/* Food name */}
+      <h4 className={`font-medium text-sm ${
+        isBlacklisted
+          ? "text-zinc-500 dark:text-zinc-500 line-through"
+          : "text-zinc-900 dark:text-zinc-100"
+      }`}>
+        {primaryTitle}
+      </h4>
       {/* Blacklist badge */}
       {isBlacklisted && (
         <div className="mt-2">
@@ -256,6 +219,48 @@ function CourseCard({
           Allergens: {course.additionalDietInfo.allergens}
         </p>
       )}
+      {/* Action buttons - always visible on mobile, hover on desktop */}
+      <div className="flex items-center gap-3 mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-700/50">
+        {/* Favorite button */}
+        <button
+          onClick={isFavorite ? onUnfavorite : onFavorite}
+          className={`flex items-center gap-1.5 text-xs transition-colors ${
+            isFavorite
+              ? "text-pink-500 hover:text-pink-600"
+              : "text-zinc-400 hover:text-pink-500 sm:opacity-0 sm:group-hover:opacity-100"
+          }`}
+          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        >
+          <svg className="w-4 h-4" fill={isFavorite ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+          <span className="sm:hidden">{isFavorite ? "Favorited" : "Favorite"}</span>
+        </button>
+        {/* Blacklist/Restore button */}
+        {isBlacklisted ? (
+          <button
+            onClick={onRestore}
+            className="flex items-center gap-1.5 text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+            title="Restore this food"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="sm:hidden">Restore</span>
+          </button>
+        ) : (
+          <button
+            onClick={onBlacklist}
+            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+            title="Blacklist this food"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+            <span className="sm:hidden">Blacklist</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -366,9 +371,7 @@ function NormalizedCourseCard({
     <div className={`p-3 rounded-lg border relative group ${
       isBlacklisted
         ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/30"
-        : course.allergens
-          ? "border-2 border-emerald-500 dark:border-emerald-400 bg-white dark:bg-zinc-800"
-          : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+        : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
     }`}>
       {/* Meal type badge - only shown when not grouped */}
       {showCategory && course.category && (
@@ -377,7 +380,7 @@ function NormalizedCourseCard({
           {onHideType && (
             <button
               onClick={() => onHideType(course.category!)}
-              className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-opacity"
+              className="text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
               title={`Hide all "${course.category}" items`}
             >
               Hide type
@@ -385,49 +388,14 @@ function NormalizedCourseCard({
           )}
         </div>
       )}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          {/* Favorite button */}
-          <button
-            onClick={isFavorite ? onUnfavorite : onFavorite}
-            className={`shrink-0 transition-colors ${
-              isFavorite
-                ? "text-pink-500 hover:text-pink-600"
-                : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-pink-500"
-            }`}
-            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <svg className="w-4 h-4" fill={isFavorite ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </button>
-          <h4 className={`font-medium text-sm ${
-            isBlacklisted
-              ? "text-zinc-500 dark:text-zinc-500 line-through"
-              : "text-zinc-900 dark:text-zinc-100"
-          }`}>
-            {course.name}
-          </h4>
-        </div>
-        {/* Blacklist/Restore button */}
-        {isBlacklisted ? (
-          <button
-            onClick={onRestore}
-            className="opacity-0 group-hover:opacity-100 text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-opacity shrink-0"
-            title="Restore this food"
-          >
-            Restore
-          </button>
-        ) : (
-          <button
-            onClick={onBlacklist}
-            className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-opacity shrink-0"
-            title="Blacklist this food"
-          >
-            Blacklist
-          </button>
-        )}
-      </div>
+      {/* Food name */}
+      <h4 className={`font-medium text-sm ${
+        isBlacklisted
+          ? "text-zinc-500 dark:text-zinc-500 line-through"
+          : "text-zinc-900 dark:text-zinc-100"
+      }`}>
+        {course.name}
+      </h4>
       {/* Blacklist badge */}
       {isBlacklisted && (
         <div className="mt-2">
@@ -447,6 +415,48 @@ function NormalizedCourseCard({
           Allergens: {course.allergens}
         </p>
       )}
+      {/* Action buttons - always visible on mobile, hover on desktop */}
+      <div className="flex items-center gap-3 mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-700/50">
+        {/* Favorite button */}
+        <button
+          onClick={isFavorite ? onUnfavorite : onFavorite}
+          className={`flex items-center gap-1.5 text-xs transition-colors ${
+            isFavorite
+              ? "text-pink-500 hover:text-pink-600"
+              : "text-zinc-400 hover:text-pink-500 sm:opacity-0 sm:group-hover:opacity-100"
+          }`}
+          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        >
+          <svg className="w-4 h-4" fill={isFavorite ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+          <span className="sm:hidden">{isFavorite ? "Favorited" : "Favorite"}</span>
+        </button>
+        {/* Blacklist/Restore button */}
+        {isBlacklisted ? (
+          <button
+            onClick={onRestore}
+            className="flex items-center gap-1.5 text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+            title="Restore this food"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="sm:hidden">Restore</span>
+          </button>
+        ) : (
+          <button
+            onClick={onBlacklist}
+            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+            title="Blacklist this food"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+            <span className="sm:hidden">Blacklist</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -644,8 +654,8 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
   const [favoriteModalFood, setFavoriteModalFood] = useState<{ name: string; category: string } | null>(null);
 
   // Get restaurant ID - use unique identifier based on provider
-  const restaurantId = restaurant.provider === "juvenes"
-    ? `juvenes-${restaurant.customerId}-${restaurant.kitchenId}`
+  const restaurantId = restaurant.provider === "juvenes" || restaurant.provider === "campusravita"
+    ? `${restaurant.provider}-${restaurant.customerId}-${restaurant.kitchenId}`
     : `sodexo-${restaurant.id}`;
 
   const handleBlacklist = (name: string) => {
@@ -706,8 +716,8 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
       setJuvenesMenu(null);
 
       try {
-        if (restaurant.provider === "juvenes") {
-          // Fetch from Juvenes/JAMIX API
+        if (restaurant.provider === "juvenes" || restaurant.provider === "campusravita") {
+          // Fetch from JAMIX API (used by both Juvenes and Campusravita)
           const response = await fetch(
             `/api/juvenes/${restaurant.customerId}/${restaurant.kitchenId}`
           );
@@ -766,8 +776,8 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
     );
   }
 
-  // Render Juvenes menu
-  if (restaurant.provider === "juvenes") {
+  // Render Juvenes/Campusravita menu (both use JAMIX API)
+  if (restaurant.provider === "juvenes" || restaurant.provider === "campusravita") {
     if (!juvenesMenu || juvenesMenu.courses.length === 0) {
       return (
         <div className="p-6 text-center">
@@ -845,9 +855,6 @@ export default function MenuDisplay({ restaurant }: MenuDisplayProps) {
               )}
             </p>
           )}
-          <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
-            Powered by Juvenes
-          </p>
         </div>
 
         {hiddenCount > 0 && (
