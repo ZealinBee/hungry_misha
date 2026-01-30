@@ -47,5 +47,8 @@ export interface Restaurant {
   name: string;
   city: string;
   address: string;
-  provider: "sodexo";
+  provider: "sodexo" | "juvenes";
+  // Juvenes-specific fields (JAMIX API)
+  customerId?: number;
+  kitchenId?: number;
 }
